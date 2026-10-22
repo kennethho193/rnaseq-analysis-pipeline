@@ -31,10 +31,18 @@ flowchart TD
 
 # Objective
 
-> **Instructions:** Based on the diagram above, write a short paragraph describing the
-> workflow. You can use the template from the first project as inspiration.
->
-> *Delete this instruction block once you've completed this section.*
+A nextflow pipeline that takes paired-end short reads from RNA-seq samples and
+generates a counts matrix for downstream differential expression analysis. This
+will include quality control of the raw reads using FastQC, followed by
+generation of a genome index from the reference genome and GTF annotation
+using STAR. The paired-end reads will then be aligned to the reference genome
+using STAR, and the resulting alignments will be used by VERSE in conjunction
+with the GTF annotation to quantify the number of reads mapped to each gene for
+every sample. The per-sample counts will be concatenated into a single counts
+matrix, and the GTF annotation will be parsed to produce a mapping of gene IDs
+to gene names. The quality of the sequencing reads and the success of the
+alignments will be assessed by aggregating the FastQC reports and STAR
+alignment logs into a single report using MultiQC.
 
 # Inputs
 
@@ -44,6 +52,9 @@ flowchart TD
 > 2. Where and how are the samples recorded? (i.e. a samplesheet with columns named X, Y, Z, etc.)
 >
 > *Delete this instruction block once you've completed this section.*
+
+Samplesheet (CSV: name, r1, r2)
+3 control samples, 3 experimental samples
 
 # Outputs
 
