@@ -6,6 +6,7 @@ nextflow.enable.types = true
 // use include to make your module processes available here
 include {FASTQC} from './modules/fastqc'
 include {PARSE_GTF} from './modules/parse_gtf'
+include {STAR_INDEX} from './modules/star_index'
 
 workflow {
     main:
@@ -15,7 +16,9 @@ workflow {
     //publish:
 
     fastqc_out = FASTQC(fastq_ch)
+
     gene_map = PARSE_GTF(file(params.gtf))
+    star_index_ch = STAR_INDEX(record(fasta: file(params.genome), gtf: file(params.gtf)))
 }
 
 output {
