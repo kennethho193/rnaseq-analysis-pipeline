@@ -8,7 +8,7 @@ nextflow.enable.types = true
 workflow {
     main:
 
-    
+    input_ch = 
     //publish:
 
 

@@ -46,27 +46,24 @@ alignment logs into a single report using MultiQC.
 
 # Inputs
 
-> **Instructions:** Describe the starting data, including:
->
-> 1. How many samples?
-> 2. Where and how are the samples recorded? (i.e. a samplesheet with columns named X, Y, Z, etc.)
->
-> *Delete this instruction block once you've completed this section.*
-
 Samplesheet (CSV: name, r1, r2)
 3 control samples, 3 experimental samples
+
+Reference genome FASTA and GTF annotation
 
 # Outputs
 
 Per Sample:
-
-
-
+- FastQC reports for the R1 and R2 reads
+- STAR alignment (BAM)
+- STAR alignment log
+- VERSE gene-level counts
 
 Per pipeline run:
-
-
-
+- STAR genome index
+- MultiQC report of FastQC and STAR alignment results
+- Counts matrix of all samples
+- Gene ID to gene name mapping
 
 # Pipeline Steps
 
