@@ -5,6 +5,7 @@ nextflow.enable.types = true
 
 // use include to make your module processes available here
 include {FASTQC} from './modules/fastqc'
+include {PARSE_GTF} from './modules/parse_gtf'
 
 workflow {
     main:
@@ -14,7 +15,7 @@ workflow {
     //publish:
 
     fastqc_out = FASTQC(fastq_ch)
-    
+    gene_map = PARSE_GTF(file(params.gtf))
 }
 
 output {
