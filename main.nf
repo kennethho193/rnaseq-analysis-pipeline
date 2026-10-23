@@ -8,7 +8,8 @@ nextflow.enable.types = true
 workflow {
     main:
 
-    input_ch = 
+    read_pairs_ch = channel.fromPath(params.subset_reads).splitCsv(header: true).map { row -> record(name: row.name, r1: file(row.r1), r2: file(row.r2)) }
+    fastq_ch = read_pairs_ch.flatMap { sample -> [record(name: sample.name, fastq: sample.r1), record(name: sample.name, fastq: sample.r2)] }
     //publish:
 
 
