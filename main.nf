@@ -4,6 +4,7 @@ nextflow.enable.types = true
 
 
 // use include to make your module processes available here
+include {FASTQC} from './modules/fastqc'
 
 workflow {
     main:
@@ -12,7 +13,7 @@ workflow {
     fastq_ch = read_pairs_ch.flatMap { sample -> [record(name: sample.name, fastq: sample.r1), record(name: sample.name, fastq: sample.r2)] }
     //publish:
 
-
+    fastqc_out = FASTQC(fastq_ch)
     
 }
 
