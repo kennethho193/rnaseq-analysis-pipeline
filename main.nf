@@ -7,6 +7,7 @@ nextflow.enable.types = true
 include {FASTQC} from './modules/fastqc'
 include {PARSE_GTF} from './modules/parse_gtf'
 include {STAR_INDEX} from './modules/star_index'
+include {STAR_ALIGN} from './modules/star_align'
 
 workflow {
     main:
@@ -17,8 +18,11 @@ workflow {
 
     fastqc_out = FASTQC(fastq_ch)
 
-    gene_map = PARSE_GTF(file(params.gtf))
+    parse_gtf_ch = PARSE_GTF(file(params.gtf))
     star_index_ch = STAR_INDEX(record(fasta: file(params.genome), gtf: file(params.gtf)))
+    star_align_ch = STAR_ALIGN(read_pairs_ch, star_index_ch)
+
+
 }
 
 output {
