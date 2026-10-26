@@ -15,7 +15,7 @@ include {CONCAT_CTS} from './modules/concat_cts'
 workflow {
     main:
 
-    read_pairs_ch = channel.fromPath(params.subset_reads).splitCsv(header: true).map { row -> record(name: row.name, r1: file(row.r1), r2: file(row.r2)) }
+    read_pairs_ch = channel.fromPath(params.full_reads).splitCsv(header: true).map { row -> record(name: row.name, r1: file(row.r1), r2: file(row.r2)) }
     fastq_ch = read_pairs_ch.flatMap { sample -> [record(name: sample.name, fastq: sample.r1), record(name: sample.name, fastq: sample.r2)] }
 
     fastqc_out = FASTQC(fastq_ch)
@@ -31,26 +31,12 @@ workflow {
     concat_cts_ch = CONCAT_CTS(verse_ch.collect())
 
     publish:
-    fastqc_reports = fastqc_out
-    alignments = star_align_ch
-    verse_counts = verse_ch
     multiqc_report = multiqc_out
     counts_matrix = concat_cts_ch
     gene_map = parse_gtf_ch
 }
 
 output {
-    fastqc_reports {
-        path {"fastqc/"}
-    }
-
-    alignments {
-        path {"star/"}
-    }
-
-    verse_counts {
-        path {"verse/"}
-    }
 
     multiqc_report {
         path {"multiqc/"}
@@ -63,4 +49,5 @@ output {
     gene_map {
         path {"counts/"}
     }
+
 }
