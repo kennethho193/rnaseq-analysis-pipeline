@@ -9,6 +9,7 @@ include {PARSE_GTF} from './modules/parse_gtf'
 include {STAR_INDEX} from './modules/star_index'
 include {STAR_ALIGN} from './modules/star_align'
 include {MULTIQC} from './modules/multiqc'
+include {VERSE} from './modules/verse'
 
 workflow {
     main:
@@ -24,6 +25,8 @@ workflow {
 
     multiqc_ch = fastqc_out.map {qc -> qc.zip }.mix(star_align_ch.map {aln -> aln.log}).collect()
     multiqc_out = MULTIQC(multiqc_ch)
+
+    verse_ch = VERSE(star_align_ch, file(params.gtf))
 
     //publish:
 }

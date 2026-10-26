@@ -21,7 +21,7 @@ process VERSE {
 
     script:
     """
-    
+    verse -S -a ${gtf} -o ${sample.name} ${sample.bam}
     """
 
     stub:
