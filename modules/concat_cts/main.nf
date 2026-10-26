@@ -14,7 +14,7 @@ process CONCAT_CTS{
 
     script:
     """
-    concat_cts.py -i ${verse_files} -o counts_matrix.csv
+    concat_cts.py -i ${verse_files.join(' ')} -o counts_matrix.csv
     """
 
     stub:
