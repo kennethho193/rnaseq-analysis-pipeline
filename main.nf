@@ -10,6 +10,7 @@ include {STAR_INDEX} from './modules/star_index'
 include {STAR_ALIGN} from './modules/star_align'
 include {MULTIQC} from './modules/multiqc'
 include {VERSE} from './modules/verse'
+include {CONCAT_CTS} from './modules/concat_cts'
 
 workflow {
     main:
@@ -27,12 +28,39 @@ workflow {
     multiqc_out = MULTIQC(multiqc_ch)
 
     verse_ch = VERSE(star_align_ch, file(params.gtf))
+    concat_cts_ch = CONCAT_CTS(verse_ch.collect())
 
-    //publish:
+    publish:
+    fastqc_reports = fastqc_out
+    alignments = star_align_ch
+    verse_counts = verse_ch
+    multiqc_report = multiqc_out
+    counts_matrix = concat_cts_ch
+    gene_map = parse_gtf_ch
 }
 
 output {
+    fastqc_reports {
+        path {"fastqc/"}
+    }
 
+    alignments {
+        path {"star/"}
+    }
 
+    verse_counts {
+        path {"verse/"}
+    }
 
+    multiqc_report {
+        path {"multiqc/"}
+    }
+
+    counts_matrix {
+        path {"counts/"}
+    }
+
+    gene_map {
+        path {"counts/"}
+    }
 }

@@ -17,7 +17,7 @@ process STAR_ALIGN {
     index: Path
 
     output:
-    record(name: sample.name, bam: file("*.Aligned.out.bam"), log: file("*.log.final.out"))
+    record(name: sample.name, bam: file("*.Aligned.out.bam"), log: file("*.Log.final.out"))
 
     script:
     """
@@ -27,7 +27,7 @@ process STAR_ALIGN {
     stub:
     """
     touch ${sample.name}.Aligned.out.bam
-    touch ${sample.name}.log.final.out
+    touch ${sample.name}.Log.final.out
     """
 
 }
