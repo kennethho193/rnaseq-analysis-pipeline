@@ -28,7 +28,17 @@ library(fgsea)
 
 ```{r load_data}
 # Read in your counts matrix, gene ID / name mapping, and sample metadata
+counts <- read_csv("results/counts/counts_matrix.csv")
+gene_map <- read_tsv("results/counts/geneIDs.txt")
 
+coldata <- tibble(
+  sample = colnames(counts)[-1], 
+  condition = factor(if_else(str_detect(sample, "control"), "control", "exp"), levels = c("control", "exp"))
+)
+
+counts
+gene_map
+coldata
 ```
 
 # Phase 1: Blind analysis
@@ -46,9 +56,10 @@ library(fgsea)
 >   with the information you have?
 >
 > *Delete this instruction block once you've completed this section.*
-- There are 2 groups (Control and Experiental) and there are 3 replicates per group numbered 1-3. For each of the 6 samples, there was read 1 and read 2 fastq for each direction as well. 
-- ???
-- 
+- There are 2 groups (Control and Experiental) and there are 3 samples per group numbered 1-3. For each of the 6 samples, there was read 1 and read 2 fastq for each direction as well. 
+- No covariates are provided. The only information provided is the condition and sample number. 
+- This design supports the analysis of identifying differences between standard control and experimented samples and the three samples for each provides a bit more confidence.
+- Potential cofounders would be if the batching of the samples were different such as library preparation date, biology if the sex or age are different, and if the sample quality was good or not, ie low sequencing depth or rna degradation.
 
 
 ## Methods
