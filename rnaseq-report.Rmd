@@ -45,21 +45,8 @@ coldata
 
 ## Experimental Design
 
-> **Instructions (1 paragraph):** Using only the sample metadata you were given, describe
-> the experiment:
->
-> - How many groups are there, and how many replicates per group?
-> - What covariates are provided (e.g. sex, batch, sequencing run)?
-> - What comparison(s) can this design support? What kinds of effects might it be unable
->   to detect?
-> - What potential confounders would you be concerned about, and can you account for them
->   with the information you have?
->
-> *Delete this instruction block once you've completed this section.*
-- There are 2 groups (Control and Experiental) and there are 3 samples per group numbered 1-3. For each of the 6 samples, there was read 1 and read 2 fastq for each direction as well. 
-- No covariates are provided. The only information provided is the condition and sample number. 
-- This design supports the analysis of identifying differences between standard control and experimented samples and the three samples for each provides a bit more confidence.
-- Potential cofounders would be if the batching of the samples were different such as library preparation date, biology if the sex or age are different, and if the sample quality was good or not, ie low sequencing depth or rna degradation.
+> **Instructions (1 paragraph):
+> RNA sequencing analysis was performed on 2 groups with 3 replicates per group numbered 1 to 3. For each of the six samples, there were R1 and R2, signifying paired-end sequencing. In our analysis, no covariates are provided and the only information provided is the condition and sample number. This experimental design supports the analysis of identifying differences between control and experimental samples. The three samples for each group provide better estimation for variability within each group. Certain effects are unable to be detected such as effects due to sex difference and small sample groups causing limited ability to detect changes in expression. Potential confounders would be if the batching of the samples were different such as library preparation date, biology if the sex or age are different, and if the sample quality was good or not, ie low sequencing depth or rna degradation. As no covariate inforamtion was provided, factors just discussed cannot be included in the DESeq2 model. These issues can only be checked partially by comparing sequencing depth and alignment rates across the samples in the MultiQC report and checking the PCA if the samples cluster by condition rather than by any other factor. 
 
 
 ## Methods
@@ -109,17 +96,32 @@ coldata
 
 ```{r filter_counts}
 # Filter the counts matrix
-
+counts_filtered <- counts |>
+  filter(rowSums(across(-gene) >= 10) >= 3)
+nrow(counts)
+nrow(counts_filtered)
 ```
 
 ```{r counts_distribution_before}
 # Plot the distribution of counts before filtering
+counts_long <- counts |> pivot_longer(-gene, names_to = "sample", values_to = "count")
 
+ggplot(counts_long, aes( x = sample, y = log10(count+1))) +
+  geom_boxplot() + 
+  labs(title = "Counts before filtering",
+       x = "Sample",
+       y = "log10(count + 1)")
 ```
 
 ```{r counts_distribution_after}
 # Plot the distribution of counts after filtering
+counts_filtered_long <- counts_filtered |> pivot_longer(-gene, names_to = "sample", values_to = "count")
 
+ggplot(counts_filtered_long, aes( x = sample, y = log10(count+1))) +
+  geom_boxplot() + 
+  labs(title = "Counts after filtering",
+       x = "Sample",
+       y = "log10(count + 1)")
 ```
 
 ## Differential Expression Analysis
@@ -153,7 +155,7 @@ coldata
 
 ```{r deseq2}
 # Run DESeq2
-
+count_matrix <-
 ```
 
 ```{r top10_table}
