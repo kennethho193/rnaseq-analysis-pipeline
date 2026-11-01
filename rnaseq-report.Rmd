@@ -24,6 +24,7 @@ knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
 library(tidyverse)
 library(DESeq2)
 library(fgsea)
+library(pheatmap)
 ```
 
 ```{r load_data}
@@ -96,7 +97,7 @@ coldata
 
 ```{r filter_counts}
 # Filter the counts matrix
-counts_filtered <- counts |>
+counts_filtered <- counts %>%
   filter(rowSums(across(-gene) >= 10) >= 3)
 nrow(counts)
 nrow(counts_filtered)
@@ -115,7 +116,7 @@ ggplot(counts_long, aes( x = sample, y = log10(count+1))) +
 
 ```{r counts_distribution_after}
 # Plot the distribution of counts after filtering
-counts_filtered_long <- counts_filtered |> pivot_longer(-gene, names_to = "sample", values_to = "count")
+counts_filtered_long <- counts_filtered %>% pivot_longer(-gene, names_to = "sample", values_to = "count")
 
 ggplot(counts_filtered_long, aes( x = sample, y = log10(count+1))) +
   geom_boxplot() + 
@@ -155,22 +156,60 @@ ggplot(counts_filtered_long, aes( x = sample, y = log10(count+1))) +
 
 ```{r deseq2}
 # Run DESeq2
-count_matrix <-
+count_matrix <- counts_filtered %>% column_to_rownames("gene") %>% as.matrix()
+sample_info <- coldata %>% column_to_rownames("sample")
+
+dds <- DESeqDataSetFromMatrix(countData = count_matrix, colData = sample_info , design = ~ condition)
+dds <-DESeq(dds)
+
+res <- results(dds, contrast = c("condition", "exp", "control")) |> as_tibble(rownames = "gene")
+res
 ```
 
 ```{r top10_table}
 # Table of the top 10 DE genes ranked by padj
-
+top10_table <- res %>% arrange(padj) %>% head(10) %>% left_join(gene_map, by = join_by("gene" == "gene_id"))
+top10_table
 ```
 
 ```{r significant_genes}
 # Number of significant genes at your padj threshold, split into up- and downregulated
+res_filtered <- as.data.frame(res) %>%
+  filter(padj < 0.05)
 
+#Count upregulated and downregulated genes
+up <- sum(res_filtered$log2FoldChange > 0, na.rm = TRUE)
+down <- sum(res_filtered$log2FoldChange < 0, na.rm = TRUE)
+
+up
+down
 ```
 
 ```{r enrichment_input}
 # Prepare / write out gene lists and background for DAVID or Enrichr
+# Upregulated genes: significant (padj < 0.05) and higher in exp than control
+up_genes <- res_filtered %>%
+  filter(log2FoldChange > 0) %>%
+  left_join(gene_map, by = join_by(gene == gene_id))
 
+# Downregulated genes: significant (padj < 0.05) and lower in exp than control
+down_genes <- res_filtered %>%
+  filter(log2FoldChange < 0) %>%
+  left_join(gene_map, by = join_by(gene == gene_id))
+
+# Background: every gene that was tested by DESeq2 (all genes that passed filtering)
+background <- res %>%
+  left_join(gene_map, by = join_by(gene == gene_id))
+
+# Write gene names to separate text files, one name per line
+write.table(unique(up_genes$gene_name), "up_genes.txt",
+            quote = FALSE, row.names = FALSE, col.names = FALSE)
+
+write.table(unique(down_genes$gene_name), "down_genes.txt",
+            quote = FALSE, row.names = FALSE, col.names = FALSE)
+
+write.table(unique(background$gene_name), "background.txt",
+            quote = FALSE, row.names = FALSE, col.names = FALSE)
 ```
 
 ## Sample Quality Control
@@ -192,17 +231,19 @@ count_matrix <-
 
 ```{r normalize}
 # Normalize the filtered counts (rlog or VST)
-
+vsd <- vst(dds, blind = TRUE)
 ```
 
 ```{r pca}
 # PCA biplot of PC1 vs. PC2 with sample information overlaid
-
+plotPCA(vsd, intgroup = "condition")
 ```
 
 ```{r sample_distances}
 # Heatmap or graphic of sample-to-sample distances
-
+vsd_mat <- assay(vsd)
+sample_dists <- dist(t(vsd_mat))
+pheatmap(sample_dists %>% as.matrix())
 ```
 
 ## DAVID / Enrichr results
@@ -211,12 +252,45 @@ count_matrix <-
 
 ```{r fgsea}
 # Run fgsea using C2 canonical pathways and log2 fold change as the ranking metric
+# C2 canonical pathways (gene symbols) from MSigDB
+library(msigdbr)
+c2_cp <- msigdbr(species = "Homo sapiens", category = "C2") %>%
+  filter(str_detect(gs_subcat, "^CP"))
 
+# Convert to the named list fgsea expects: pathway name -> vector of gene symbols
+pathways <- split(c2_cp$gene_symbol, c2_cp$gs_name)
+# Rank every tested gene by log2 fold change (exp vs control), named by gene symbol
+ranked <- res %>%
+  left_join(gene_map, by = join_by(gene == gene_id)) %>%
+  filter(!is.na(log2FoldChange)) %>%
+  distinct(gene_name, .keep_all = TRUE) %>%
+  arrange(desc(log2FoldChange))
+
+ranks <- ranked$log2FoldChange
+names(ranks) <- ranked$gene_name
+head(ranks)
+
+fgsea_res <- fgsea(pathways = pathways, stats = ranks, minSize = 15, maxSize = 500) %>%
+  as_tibble() %>%
+  arrange(padj)
+
+fgsea_res
 ```
 
 ```{r fgsea_plot}
 # Plot the top significantly enriched pathways
+top_pathways <- fgsea_res %>%
+  filter(padj < 0.05) %>%
+  slice_head(n = 20)
 
+ggplot(top_pathways, aes(x = NES, y = reorder(pathway, NES), fill = NES > 0)) +
+  geom_col() +
+  scale_fill_manual(values = c("TRUE" = "firebrick", "FALSE" = "steelblue"),
+                    labels = c("TRUE" = "Up in exp", "FALSE" = "Down in exp"),
+                    name = NULL) +
+  labs(title = "Top enriched C2 canonical pathways (fgsea, padj < 0.05)",
+       x = "Normalized Enrichment Score (NES)",
+       y = NULL)
 ```
 
 ## fgsea results
