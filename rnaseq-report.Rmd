@@ -277,7 +277,7 @@ fgsea_res <- fgsea(pathways = pathways, stats = ranks, minSize = 15, maxSize = 5
 fgsea_res
 ```
 
-```{r fgsea_plot}
+```{r fgsea_plot, fig.width = 11, fig.height = 7}
 # Plot the top significantly enriched pathways
 top_pathways <- fgsea_res %>%
   filter(padj < 0.05) %>%
