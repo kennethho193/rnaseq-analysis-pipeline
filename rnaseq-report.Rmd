@@ -1,6 +1,6 @@
 ---
 title: "Project 2: RNAseq"
-author: "Your Name"
+author: "Kenneth Ho"
 date: "`r Sys.Date()`"
 output:
   html_document:
@@ -8,12 +8,6 @@ output:
     toc_float: true
     number_sections: false
 ---
-
-> **Note:** Sections marked **Instructions:** are scaffolding to guide you. Delete every
-> instruction block once you've filled in the section, so the final document contains
-> only your analysis and writing. Delete this section as well.
-> If there is anything missing here or mistakes, please use the textbook guidelines as the
-> ultimate source of truth.
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
@@ -25,6 +19,7 @@ library(tidyverse)
 library(DESeq2)
 library(fgsea)
 library(pheatmap)
+library(msigdbr)
 ```
 
 ```{r load_data}
@@ -45,26 +40,17 @@ coldata
 # Phase 1: Blind analysis
 
 ## Experimental Design
-
-> **Instructions (1 paragraph):
-> RNA sequencing analysis was performed on 2 groups with 3 replicates per group numbered 1 to 3. For each of the six samples, there were R1 and R2, signifying paired-end sequencing. In our analysis, no covariates are provided and the only information provided is the condition and sample number. This experimental design supports the analysis of identifying differences between control and experimental samples. The three samples for each group provide better estimation for variability within each group. Certain effects are unable to be detected such as effects due to sex difference and small sample groups causing limited ability to detect changes in expression. Potential confounders would be if the batching of the samples were different such as library preparation date, biology if the sex or age are different, and if the sample quality was good or not, ie low sequencing depth or rna degradation. As no covariate inforamtion was provided, factors just discussed cannot be included in the DESeq2 model. These issues can only be checked partially by comparing sequencing depth and alignment rates across the samples in the MultiQC report and checking the PCA if the samples cluster by condition rather than by any other factor. 
+RNA sequencing analysis was performed on 2 groups with 3 replicates per group numbered 1 to 3. For each of the six samples, there were R1 and R2, signifying paired-end sequencing. In our analysis, no covariates are provided and the only information provided is the condition and sample number. This experimental design supports the analysis of identifying differences between control and experimental samples. The three samples for each group provide better estimation for variability within each group. Certain effects are unable to be detected such as effects due to sex difference and small sample groups causing limited ability to detect changes in expression. Potential confounders would be if the batching of the samples were different such as library preparation date, biology if the sex or age are different, and if the sample quality was good or not, ie low sequencing depth or rna degradation. As no covariate information was provided, factors just discussed cannot be included in the DESeq2 model. These issues can only be checked partially by comparing sequencing depth and alignment rates across the samples in the MultiQC report and checking the PCA if the samples cluster by condition rather than by any other factor. 
 
 
 ## Methods
 
-> **Instructions (as long as needed):** Concisely describe which steps were taken in the
-> analysis of the data, following our conventions for a methods section (see the methods
-> guidelines presentation).
->
-> - Specify the software versions used and the parameters for each step. If no parameters
->   were changed, state that default parameters were used.
-> - Include any details necessary for someone else to replicate your analysis exactly.
-> - You can exclude details that should not affect the results, such as exact file paths.
-> - Cover both the Nextflow pipeline you developed and the analyses in this notebook.
->
-> *Delete this instruction block once you've completed this section.*
 
+### RNA-seq preprocessing and Nextflow pipeline
+RNA-seq data processing was performed using a custom Nextflow (v26.04.6) pipeline executed on the Boston University Shared Computing Cluster (BU SCC). The pipeline was run using containerized tools (Docker images from ghcr.io/bu-cds-bf528/*:latest, executed with Singularity). Six paired-end RNA-seq samples, consisting of three control and three experimental samples, were analyzed. The GRCh38 primary assembly reference genome and corresponding GENCODE v45 primary assembly gene annotation (GTF) were used for read alignment and quantification. Read quality was assessed using FastQC (v0.12.1) with default parameters on both forward (R1) and reverse (R2) reads for each sample. A genome index was generated using STAR (v2.7.11b) with the --runMode genomeGenerate and --sjdbGTFfile parameters to incorporate the GENCODE annotation; all other parameters were left at their defaults. Reads were subsequently aligned to the reference genome using STAR (v2.7.11b), with --readFilesCommand zcat for decompression of input FASTQ files and --outSAMtype BAM Unsorted for BAM output; all other alignment parameters were set to default values. Gene-level read counts were generated using VERSE (v0.1.5) with the -S option to accommodate paired-end alignments that were not sorted by read name and the GENCODE v45 GTF annotation. All other VERSE parameters were left at their default settings. Per-sample gene count files were combined into a gene-by-sample count matrix using a custom Python script with pandas (v3.0.1). Gene identifiers were subsequently mapped to gene names using a second custom Python script (run in a Biopython v1.86 container), extracting gene ID and gene name pairs from gene features in the GTF annotation. Finally, MultiQC (v1.33) was used with default parameters to aggregate FastQC reports and STAR Log.final.out alignment statistics into a consolidated quality control report.
 
+### Differential expression and functional enrichment analysis
+Downstream analyses were performed in R (v4.4.3) using DESeq2 (v1.46.0), tidyverse (v2.0.0; ggplot2 v3.5.1, dplyr v1.1.4, and readr v2.1.5), fgsea (v1.32.4), msigdbr (v7.5.1), and pheatmap (v1.0.12). Genes were filtered to retain those with at least 10 raw counts in at least three of the six samples. Differential gene expression between experimental and control conditions was assessed using DESeq2 with a design formula of ~ condition and a contrast of experimental versus control. Statistical significance was determined using the default Wald test, with p-values adjusted for multiple testing using the Benjamini–Hochberg procedure. Genes with an adjusted p-value (padj) below 0.05 were considered significantly differentially expressed and categorized as upregulated (log2 fold change > 0) or downregulated (log2 fold change < 0) in the experimental condition relative to the control. For sample-level quality control, counts were transformed using the variance-stabilizing transformation (VST) with blind = TRUE. Principal component analysis (PCA) was performed using DESeq2's plotPCA function, with samples visualized according to experimental condition. Additionally, a sample-to-sample Euclidean distance matrix was calculated from the transformed expression data and visualized using pheatmap. Functional overrepresentation analysis was conducted using the DAVID Functional Annotation Chart (accessed November 2, 2026), with upregulated and downregulated gene lists submitted separately as official gene symbols (Homo sapiens). All genes retained after count filtering were supplied as the background gene set. Default DAVID parameters were used (EASE score threshold = 0.1; minimum count = 2), and terms with Benjamini-adjusted p-values below 0.05 were considered significant. Gene set enrichment analysis (GSEA) was performed using fgsea with the Molecular Signatures Database (MSigDB) v7.5.1 C2 canonical pathways collection, retrieved using msigdbr (v7.5.1). Ensembl gene IDs were mapped to gene symbols, and genes with missing log2 fold-change values or duplicate symbols were removed; the remaining genes were ranked by log2 fold change. Enrichment analysis was performed with a minimum pathway size of 15, a maximum pathway size of 500, and a random seed of 42. Pathways with Benjamini-Hohberg-adjusted p-values below 0.05 were considered significantly enriched.
 
 ## Read Quality Control
 
@@ -105,7 +91,7 @@ nrow(counts_filtered)
 
 ```{r counts_distribution_before}
 # Plot the distribution of counts before filtering
-counts_long <- counts |> pivot_longer(-gene, names_to = "sample", values_to = "count")
+counts_long <- counts %>% pivot_longer(-gene, names_to = "sample", values_to = "count")
 
 ggplot(counts_long, aes( x = sample, y = log10(count+1))) +
   geom_boxplot() + 
@@ -162,7 +148,7 @@ sample_info <- coldata %>% column_to_rownames("sample")
 dds <- DESeqDataSetFromMatrix(countData = count_matrix, colData = sample_info , design = ~ condition)
 dds <-DESeq(dds)
 
-res <- results(dds, contrast = c("condition", "exp", "control")) |> as_tibble(rownames = "gene")
+res <- results(dds, contrast = c("condition", "exp", "control")) %>% as_tibble(rownames = "gene")
 res
 ```
 
@@ -174,7 +160,7 @@ top10_table
 
 ```{r significant_genes}
 # Number of significant genes at your padj threshold, split into up- and downregulated
-res_filtered <- as.data.frame(res) %>%
+res_filtered <- res %>%
   filter(padj < 0.05)
 
 #Count upregulated and downregulated genes
@@ -253,7 +239,6 @@ pheatmap(sample_dists %>% as.matrix())
 ```{r fgsea}
 # Run fgsea using C2 canonical pathways and log2 fold change as the ranking metric
 # C2 canonical pathways (gene symbols) from MSigDB
-library(msigdbr)
 c2_cp <- msigdbr(species = "Homo sapiens", category = "C2") %>%
   filter(str_detect(gs_subcat, "^CP"))
 
@@ -270,6 +255,7 @@ ranks <- ranked$log2FoldChange
 names(ranks) <- ranked$gene_name
 head(ranks)
 
+set.seed(42)
 fgsea_res <- fgsea(pathways = pathways, stats = ranks, minSize = 15, maxSize = 500) %>%
   as_tibble() %>%
   arrange(padj)
@@ -298,6 +284,23 @@ ggplot(top_pathways, aes(x = NES, y = reorder(pathway, NES), fill = NES > 0)) +
 
 
 ## Comparing DAVID/Enrichr and fgsea
+```{r david_results}
+# DAVID Functional Annotation Chart results 
+david_up <- read_csv("DAVIDChartReport_up_genes_2026-11-02.csv")
+david_down <- read_csv("DAVIDChartReport_down_genes_2026-11-02.csv")
+
+# keep terms with Benjamini-adjusted p < 0.05 (same cutoff as padj for DE genes)
+david_up_sig <- david_up %>% filter(Benjamini < 0.05) %>% arrange(Benjamini)
+david_down_sig <- david_down %>% filter(Benjamini < 0.05) %>% arrange(Benjamini)
+
+# how many significant terms in each list
+nrow(david_up_sig)
+nrow(david_down_sig)
+
+# top 10 terms
+david_up_sig %>% select(Category, Term, Count, `Fold Enrichment`, Benjamini) %>% head(10)
+david_down_sig %>% select(Category, Term, Count, `Fold Enrichment`, Benjamini) %>% head(10)
+```
 
 
 
