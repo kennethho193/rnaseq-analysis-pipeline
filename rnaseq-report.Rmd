@@ -54,32 +54,15 @@ Downstream analyses were performed in R (v4.4.3) using DESeq2 (v1.46.0), tidyver
 
 ## Read Quality Control
 
-> **Instructions (1-2 paragraphs):** Use the MultiQC report or the individual FastQC and
-> STAR logs to evaluate the quality of the reads. At minimum, address each of the following
-> (even if there's no issue, state that there is no issue):
->
-> - The range of the number of reads in all the samples
-> - Any potential issues with the reads as flagged by FastQC
-> - Any overrepresented sequences, or adapter contamination in the reads
-> - The alignment rate of the reads to the reference genome
-> - Multimapping rate
-> - Whether you believe the experiment was of high quality and suitable for downstream
->   analysis. If not, what you would do to improve the quality of the reads?
->
-> *Delete this instruction block once you've completed this section.*
+Read quality was assessed using FastQC and summarized with MultiQC. Sequencing depth ranged from 84.5 million (control_rep2) to 118.9 million (control_rep3) read pairs across the six samples. FastQC flagged per-base sequence content as failing for all R1 files and as a warning for all R2 files. Sequence duplication levels were also flagged as failing across all twelve FASTQ files. These warnings do not necessarily indicate poor sequencing quality as elevated duplication levels are commonly observed in RNA-seq experiments because highly expressed transcripts generate many identical reads. Overrepresented sequences were flagged in six of the twelve FASTQ files (control_rep1 R1, control_rep3 R1 and R2, exp_rep2 R1 and R2, and exp_rep3 R1). However, the proportion of the reads corresponding to overrepresented sequences was minimal, with every FASTQ files containing less than 1% overrepresented sequences. Adapter contamination was also minimal across all samples, so adapter trimming was not performed. 
 
-
+Alignment to the GRCh38 reference genome using STAR showed consistently high alignment rates across all six samples. Overall alignment rates, including both uniquely and multimapped reads, ranged from 95.8% (exp_rep2) to 97.8% (control_rep2). Uniquely mapped reads ranged from 91.9% (exp_rep3) to 94.0% (control_rep2), while reads mapped to multiple loci ranged from 3.7% (exp_rep2) to 4.9% (exp_rep3). Sequencing depth and alignment rates did not differ systematically between control and experimental samples as well. These results indicate that the majority of sequenced reads mapped successfully and uniquely to the reference genome, with relatively low multimapping rates. Given the high alignment rates, low multimapping, negligible adapter content, and FastQC warnings correlated with RNA-sequencing, the data were considered high quality and suitable for downstream analyses without additional read trimming or preprocessing.
 
 ## Filtering the Counts Matrix
 
-> **Instructions (1-2 paragraphs):** Describe the filtering process you used on the counts
-> matrix.
->
-> - Include two plots showing the distribution of counts before and after filtering
-> - State the number of genes present before and after filtering
-> - Justify in a paragraph why you chose to filter in this way
->
-> *Delete this instruction block once you've completed this section.*
+Genes were filtered to keep only those with at least 10 raw counts in at least three of the six samples. Before filtering, the counts matrix contained 63,241 genes and after filtering, 20,579 genes were retained. Before filtering, the median log10(count + 1) values were near or at zero in every sample. This indicates that most of the genes had little to no detectable expression and the expressed genes appeared only as upper outliers. After filtering, median log10(count + 1) values were approximately 2.8 in all samples.
+
+This filter follows the DESeq2 vignette's pre-filtering recommendation of at least 10 counts in at least as many samples as the smallest group. A threshold of 10 counts was used alongside a minimum of three samples being required because three is the size of each group, so a gene expressed in only one condition is still retained. At the sequencing depth (~85-119 million read pairs per sample), 10 counts corresponds to only about 0.1 count per million, so the filter chosen is quite lenient. It essentially removes the unexpressed genes and keeps genes with low expression.
 
 ```{r filter_counts}
 # Filter the counts matrix
@@ -113,32 +96,13 @@ ggplot(counts_filtered_long, aes( x = sample, y = log10(count+1))) +
 
 ## Differential Expression Analysis
 
-> **Instructions (3-4 paragraphs):**
->
-> - Create a table of the top 10 differentially expressed genes and the statistics provided
->   by DESeq2, ranked by adjusted p-value
-> - Choose a padj threshold and report the number of significant genes at this threshold,
->   separated into up- and downregulated
-> - Use the thresholded results to perform a DAVID or Enrichr analysis on the significant
->   genes at your chosen padj threshold
->     - State the background gene set you used and justify it
->     - State whether you submitted up- and downregulated genes together or separately,
->       and why
-> - Perform a GSEA analysis using
->   [fgsea](https://bioconductor.org/packages/release/bioc/html/fgsea.html) on your RNAseq
->   results using the C2 canonical pathways MSigDB dataset and log2 fold change as the
->   ranking metric
-> - Choose a padj threshold for the fgsea analysis and create a plot of your choice that
->   displays the top most significantly enriched pathways
-> - Comment briefly on the results of the DAVID or Enrichr analysis and the table you
->   created, and what it indicates about the biological processes that might differ
->   between groups
-> - Comment briefly on the results of the fgsea analysis by stating what you believe are
->   the main significant pathways of interest and why
-> - Compare the results from your DAVID/Enrichr analysis and your fgsea analysis and
->   comment on any similarities or differences you observe
->
-> *Delete this instruction block once you've completed this section.*
+Differential Expression analysis was performed on the 20,579 genes, with 1,254 being significantly differentially expressed between the experimental and control groups at padj < 0.05. Of these genes, 572 were upregulated and 682 were downregulated in the experimental condition. The top-10 table created showcase that the most significant gene was RPS4Y1 with a log2FC of -8.8, with other top genes being lncRNAs or unannotated loci.
+
+Upregulated and downregulated genes were submitted to DAVID separately. This was done so that results could be distinct between genes being upregulated and downregulated rather than diluted together. The background utilized was all 20,579 genes that passed filtering as these genes were the set that was used to detect the differentially expressed genes. DAVID recognized 415 of the 572 upregulated and 611 of the 682 downregulated genes. At Benjamini < 0.05, 153 terms were enriched among upregulated genes and 88 among downregulated genes. Upregulated genes were strongly enriched for secreted and extracellular proteins, including glycoprotein, extracellular region, secreted, and extracellular matrix among others. Downregulated genes were enriched for plasma membrane, synapse, nervous system development, developmental proteins, and immunoglobulin-like domains. These results suggest that the experimental condition increases expression of extracellular matrix and secretory functions while reducing nervous system and synaptic related genes.
+
+Gene set enrichment analysis was performed using fgsea with MSigDB C2 canonical pathways, with genes ranked by log2 fold change; pathways with padj < 0.05 were considered significant. Positively enriched pathways were dominated by extracellular matrix organization, collagen formation, and signaling pathways. Negatively enriched pathways were dominated by neural and synaptic signaling, potassium channels, and cardiac conduction among other functions. The extracellular matrix and neural/synaptic signaling seem to be the main pathways of interest as they are the most strongly enriched in each direction with many overlapping genes affecting those pathways in coordination.
+
+Comparing DAVID and fgsea results, both methods seemed to converge on the same conclusion which was an upregulation of extracellular matrix and secreted proteins, and a downregulation of synaptic and neural membrane genes. The agreement between the two methods with different methodologies strengthens confidence in these findings. The methods differed in detail as DAVID returned more broad annotation terms that describe protein features rather than pathways, whereas fgsea identified specific pathways. 
 
 ```{r deseq2}
 # Run DESeq2
@@ -200,20 +164,9 @@ write.table(unique(background$gene_name), "background.txt",
 
 ## Sample Quality Control
 
-> **Instructions (2 paragraphs):** Evaluate your samples before performing differential
-> expression. These plots tell you whether your downstream results can be trusted.
->
-> - Following the DESeq2 vignette, normalize the filtered counts using the rlog
->   transformation or the variance-stabilizing transformation
-> - Perform PCA on the normalized counts matrix and overlay the sample information in a
->   biplot of PC1 vs. PC2
-> - Create a heatmap or graphic of the sample-to-sample distances for the experiment
-> - Do the samples cluster by experimental group? Are any samples outliers? Do any
->   covariates appear to explain the variation better than the experimental groups?
-> - Based only on these plots, would you proceed to differential expression with all
->   samples as they are? If not, what would you change, and why?
->
-> *Delete this instruction block once you've completed this section.*
+Filtered counts were normalized using variance-stabilizing transformation (VST) with blind = TRUE. Principal component analysis showed that PC1 explained 86% of the variance and separated the samples by conditions: the three control samples clustering, while exp_rep1 and exp_rep2 grouped together on the opposite side of PC1. Exp_rep3 was positioned between the two groups on PC1 and was separated from all other samples along PC2, explaining, which explained the 10% of the variance. The sample-to-sample distance heatmap displayed the same pattern as well.
+
+Overall the samples mostly clustered by group with the condition explaining the largest source of variation (control vs experimental). exp_rep3 was the least consistent sample and could be considered an outlier of the samples. With no covariates provided, no other sources of variation could be directly tested. Based on these plots, I would proceed with differential expression using all six samples as the main separation still seems to be driven by condition and removing the exp_rep3 would leave only 2 experimental replicates, reducing the ability to estimate variability within the group. With exp_rep3 being intermediate between the groups, it is likely to reduce the number of differentially expressed genes rather than introduce false positives which, in this case, is does not outweigh the cons of losing a replicate.
 
 ```{r normalize}
 # Normalize the filtered counts (rlog or VST)
