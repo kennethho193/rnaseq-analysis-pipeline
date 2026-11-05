@@ -259,36 +259,23 @@ david_down_sig %>% select(Category, Term, Count, `Fold Enrichment`, Benjamini) %
 
 ## Interpretations
 
-> **Instructions (2-3 paragraphs):** Using the number and direction of your DE genes, along
-> with your pathway and enrichment results:
->
-> - Speculate broadly on the major changes caused by the experimental condition
-> - Which results most strongly support your speculation?
->
-> *Delete this instruction block once you've completed this section.*
+The number of differentially expressed genes was 1,254 with 572 upregulated and 682 downregulated. With the PCA, 86% of the variance was explained by PC1 and separated samples by condition, indicating that the condition causes a large shift in expression. It seems the experimental condition shifts cells away from neural, synaptic, and developmental processes and more towards extracellular matrix and secretory processes. With these results, the experimental condition seems to reflect a change in cell state or in the cells' extracellular environment. 
 
+The results that support the speculation the most are the DAVID and fgsea results as the two independent methods reached the same themes. For upregulated genes, DAVID extracellular matrix was 5.0-fold with a Benjamini value of 1.7e-23 while fgsea identified extracellular matrix organization and collagen formation among the top positively enriched pathways. For downregulated genes, DAVID synapse was 3.0-fold with a Benjamini value of 3.2e-13 while fgsea identified neuronal and synaptic signaling among the top negatively enriched pathways. The agreement provides further confidence in results as DAVID uses only the significant genes while fgsea uses every gene's fold change.
 
 
 ## Your Conclusions and Follow-up
 
-> **Instructions:**
->
-> - Propose two to three additional experiments you might do to validate your findings.
->   You do not have to do them; just propose them and anticipate what they would show you
->   if your findings held, and what result would convince you that your findings were
->   wrong.
-> - Propose at least two follow-up experiments that would extend or expand on your
->   findings.
->
-> *Delete this instruction block once you've completed this section.*
-
 ### Validation experiments
 
+1. qPCR on top DE genes: the idea would be to measure a few of the top upregulated genes and downregulated genes in new samples of each condition. With this, look to see if the upregulated genes are higher and downregulated genes are lower in experimental conditions with similar fold changes. If there seems to be no difference between groups or changes in opposite direction, this would suggeset teh RNA-seq findings are wrong.
 
+2. Protein check: the idea would be to perform western blot for an extracellular matrix protein and synaptic protein. With this, look to see if protein levels change in the same direction as the RNA. If protein levels do not change, this would suggeset the RNA changes do not carry through to the protein level, weakening the speculated functional changes.
 
 ### Follow-up experiments
 
-
+1. Different time points: take samples at several time points after the condition starts. The aim should be to see when the changes begin and whether downregulation or upregulation occurs before the other.
+2. Functional assay: measure extracellular matrix deposition and neuronal function. The aim is to test whether the expression changes alter what the cells actually do. 
 
 # Phase 2: Informed analysis
 
@@ -297,14 +284,7 @@ david_down_sig %>% select(Category, Term, Count, `Fold Enrichment`, Benjamini) %
 
 ## Introduction
 
-> **Instructions (1 paragraph):**
->
-> - What is the biological background of the study?
-> - Why was the study performed?
-> - Why did the authors use the bioinformatic techniques they did?
->
-> *Delete this instruction block once you've completed this section.*
-
+The study revolves around Type 1 diabetes (T1D) as a chronic autoimmune disease in which the immune system attacks and destroys insulin-producing pancreatic beta cells, eventually impairing the body's ability to regulate blood glucose. The gene TYK2, which encodes a Janus kinase involved in type I interferon signaling, has been associated with T1D susceptibility and plays an important role in immune responses. Notably, TYK2 variants that partially reduce its function are protective against T1D. However, its specific functions in pancreatic beta-cell development and responses to inflammation were not fully understood. The study was performed to investigate how TYK2 influences pancreatic beta-cell development, function, and responses to immune challenges, particularly to interferon-alpha. To investigate this, the authors generated TYK2 knockout human induced pluripotent stem cells (iPSCs) and differentiated them alongside wild-type cells into pancreatic islet-like cells (SC-islets), comparing the two genotypes at multiple stages of differentiation. The authors used bulk RNA sequencing, with three knockout and three wild-type replicates, to examine gene expression changes throughout pancreatic stem cell differentiation. They also used single-cell RNA sequencing (scRNA-seq) to identify differences in gene expression among specific pancreatic cell populations. These bioinformatic techniques allowed the researchers to identify differentially expressed genes, examine developmental pathways, and investigate potential relationships between TYK2 and other genes such as KRAS and NEUROG3. Principal component analysis (PCA), gene set enrichment analysis (GSEA), and pathway enrichment analyses were also used to identify broader transcriptional patterns and biological processes affected by TYK2 loss. Together, these approaches helped determine how TYK2 regulates pancreatic endocrine development and interferon-induced immune responses, providing insight into its potential as a therapeutic target for T1D.
 
 
 ## Replicate Figures 3C and 3F
@@ -320,12 +300,72 @@ david_down_sig %>% select(Category, Term, Count, `Fold Enrichment`, Benjamini) %
 
 ```{r volcano_plot}
 # Volcano plot similar to figure 3C
+volcano_df <- res %>%
+  filter(!is.na(padj)) %>%
+  left_join(gene_map, by = join_by(gene == gene_id)) %>%
+  mutate(
+    status = case_when(
+      padj < 0.01 & log2FoldChange > 0 ~ "Up",
+      padj < 0.01 & log2FoldChange < 0 ~ "Down",
+      TRUE ~ "Not significant"
+    ),
+    neg_log10_p = -log10(pmax(pvalue, 1e-300))
+  )
 
+# Genes highlighted in the paper's figure 3C
+label_genes <- c("KRAS", "LAMB2", "SPP1", "DUSP6", "SPRY2", "AKT3", "COL21A1", "APOE",
+                 "KDR", "NEUROG3", "INSM1", "PAX6", "NEUROD1", "NKX2-2", "ONECUT1", "GABRB3")
+
+top_labels <- volcano_df %>%
+  filter(gene_name %in% label_genes)
+
+ggplot(volcano_df, aes(x = log2FoldChange, y = neg_log10_p, color = status)) +
+  geom_point(alpha = 0.5, size = 1) +
+  ggrepel::geom_text_repel(data = top_labels, aes(label = gene_name),
+                           size = 3, color = "black", max.overlaps = Inf) +
+  annotate("text", x = -7, y = 290, label = "DOWN", color = "#00BFC4", size = 5) +
+  annotate("text", x = 7, y = 290, label = "UP", color = "#F8766D", size = 5) +
+  scale_color_manual(values = c("Up" = "#F8766D", "Down" = "#00BFC4",
+                                "Not significant" = "black")) +
+  theme_classic() +
+  coord_cartesian(ylim = c(0, 15)) +
+  labs(title = "Volcano plot: exp vs control (padj < 0.01)",
+       x = "Expression difference (log2FC)",
+       y = "Significance (-log10 p value)",
+       color = NULL)
 ```
 
-```{r figure_3f}
+```{r figure_3f, fig.width=9, fig.height=8}
 # Enrichment plot resembling figure 3F using your DAVID/Enrichr or fgsea results
+pathway_cats <- c("KEGG_PATHWAY", "GOTERM_BP_DIRECT")
 
+up_terms <- david_up_sig %>%
+  filter(Category %in% pathway_cats) %>%
+  arrange(Benjamini) %>%
+  head(8) %>%
+  mutate(direction = "up")
+
+down_terms <- david_down_sig %>%
+  filter(Category %in% pathway_cats) %>%
+  arrange(Benjamini) %>%
+  head(8) %>%
+  mutate(direction = "down")
+
+fig3f_df <- bind_rows(up_terms, down_terms) %>%
+  mutate(percent = Count / `Pop Hits` * 100,
+         direction = factor(direction, levels = c("up", "down")))  # up panel on top
+
+ggplot(fig3f_df, aes(x = percent, y = reorder(Term, percent), fill = Benjamini)) +
+  geom_col() +
+  facet_grid(direction ~ ., scales = "free_y", space = "free_y",
+             labeller = as_labeller(c(up = "\u2191", down = "\u2193"))) +
+  scale_fill_gradient(low = "red", high = "blue") +
+  theme_classic() +
+  theme(strip.text.y = element_text(angle = 0, size = 16),  # upright arrows
+        strip.background = element_blank()) +              # no box around arrows
+  labs(title = "Enrichment (DAVID KEGG + GO BP)", fill = "Adjusted p value",
+       x = "Percentage of DE genes in category / all genes in category (%)",
+       y = NULL)
 ```
 
 ### 1. Up- and downregulated genes
@@ -338,13 +378,21 @@ david_down_sig %>% select(Category, Term, Count, `Fold Enrichment`, Benjamini) %
 
 ```{r compare_counts}
 # Number of up- and downregulated genes at the authors' significance threshold
+paper_res_filtered <- res %>%
+  filter(padj < 0.01)
 
+#Count upregulated and downregulated genes
+up_01 <- sum(paper_res_filtered$log2FoldChange > 0, na.rm = TRUE)
+down_01 <- sum(paper_res_filtered$log2FoldChange < 0, na.rm = TRUE)
+
+up_01
+down_01
 ```
 
 |                | Your results | Reported in paper |
 |----------------|--------------|-------------------|
-| Upregulated    |              |                   |
-| Downregulated  |              |                   |
+| Upregulated    |    332       |      319          |
+| Downregulated  |    403       |      412          |
 
 
 
