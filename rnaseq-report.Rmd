@@ -370,11 +370,7 @@ ggplot(fig3f_df, aes(x = percent, y = reorder(Term, percent), fill = Benjamini))
 
 ### 1. Up- and downregulated genes
 
-> **Instructions:** Compare how many significant genes are up- and downregulated in their
-> findings and yours (using their significance threshold). List how many you find vs. how
-> many they report.
->
-> *Delete this instruction block once you've completed this section.*
+At padj < 0.01, differentially expressed genes were found to be 332 upregulated and 403 downregulated while the paper reported 319 upregulated and 412 downregulated. The difference between my findings and the paper's reportings is 13 more upregulated genes and 9 fewer downregulated genes, with a total of 735 genes in my findings and 731 in the paper's. Both analyses found more downregulated than upregulated genes, and the counts agree closely despite differences in the two pipelines.  
 
 ```{r compare_counts}
 # Number of up- and downregulated genes at the authors' significance threshold
@@ -398,12 +394,9 @@ down_01
 
 ### 2. Enrichment comparison
 
-> **Instructions:** Compare their enrichment results with your DAVID/Enrichr and fgsea
-> analyses. Comment on any differences you observe.
->
-> *Delete this instruction block once you've completed this section.*
+The authors reported upregulation of extracellular matrix organization, integrin cell surface interactions, extracellular matrix proteoglycans, and signaling by receptor tyrosine kinases while reporting downregulation of beta-cell development, neuronal system, and regulation of gene expression in beta cells. Overall my findings agree with these results. Upregulated genes were enriched for extracellular matrix in both DAVID and fgsea. Downregulated genes were enriched for neural and synaptic functions in both DAVID and fgsea as well. DAVID also identified PI3K-Akt signaling among the upregulated genes, which acts downstream of receptor tyrosine kinases. 
 
-
+There were also some key differences as the beta-cell signal was weaker in my results. Maturity onset diabetes of the young was the only clearly beta-cell-related term, and no beta-cell pathways appeared among the top fgsea results. My results also included terms not reported by the authors such as p53 signaling and cytochrome P450 drug metabolism among the upregulated genes. These differences seem to be caused, in part, by the different databases used as the authors used Reactome, while my analyses used DAVID's KEGG and GO terms and MSigDB canonical pathways for fgsea, so pathway names do not match exactly.
 
 ### 3. Sources of discrepancy
 
