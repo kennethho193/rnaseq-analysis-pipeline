@@ -289,14 +289,6 @@ The study revolves around Type 1 diabetes (T1D) as a chronic autoimmune disease 
 
 ## Replicate Figures 3C and 3F
 
-> **Instructions (3-4 paragraphs):**
->
-> - Create a volcano plot similar to the one seen in figure 3C
-> - Use your DAVID/Enrichr or fgsea results and create a plot resembling figure 3F but with
->   your findings. You do not need to use the same pathways as they did.
-> - Read their discussion of their results and address the numbered questions below.
->
-> *Delete this instruction block once you've completed this section.*
 
 ```{r volcano_plot}
 # Volcano plot similar to figure 3C
@@ -400,45 +392,22 @@ There were also some key differences as the beta-cell signal was weaker in my re
 
 ### 3. Sources of discrepancy
 
-> **Instructions:** List the candidate sources of discrepancy between your results and
-> theirs (e.g. genome and annotation versions, aligner, filtering, normalization,
-> thresholds, multiple testing correction). Using the paper's methods as evidence, comment
-> on at least two candidate sources you believe contribute the most to the differences you
-> observe.
->
-> - For each candidate source, propose a follow-up analysis or experiment that would reveal
->   whether it was the likely source of the differences. **You do not need to actually do
->   this analysis, just propose how.**
->
-> *Delete this instruction block once you've completed this section.*
+Several methodological differences could contribute to the discrepancies between my results and those reported in the paper. During preprocessing, the authors used Cutadapt v2.6 to remove adapter sequences, ambiguous bases, and low-quality bases with Phred scores below 25. Read pairs shorter than 25 bp after trimming were also excluded, whereas I did not perform read trimming. For alignment, the authors used STAR v2.5.4b, while I used STAR v2.7.11b with default parameters. For read counting, the authors used featureCounts in Rsubread v2.4.3 and excluded duplicate, chimeric, multimapping, and low-MAPQ (MAPQ < 10) reads, whereas I used VERSE v0.1.5 with default parameters. The authors also removed genes with fewer than 50 reads across all samples, while I used a more lenient filter of at least 10 counts in at least three samples. Additional differences include the DESeq2 versions (v1.30.1 in the paper versus v1.46.0 in my analysis), multiple-testing correction (Fdrtool in the paper versus Benjamini-Hochberg in my analysis), and functional enrichment tools (Reactome-based enrichment in the paper versus DAVID and fgsea with MSigDB C2 canonical pathways in my analysis).
 
+Of these differences, I believe the multiple-testing correction and the differences in read counting and filtering are the most likely to contribute to the discrepancies. First, the authors used Fdrtool to estimate the false discovery rate and identified differentially expressed genes using an FDR threshold of less than 0.01, whereas my analysis used the Benjamini-Hochberg method with an adjusted p-value threshold of 0.05. These different approaches and significance thresholds could result in different numbers of significant genes. To investigate this, I would apply Fdrtool to the same DESeq2 results generated in my analysis and compare the resulting significant genes with those identified using Benjamini-Hochberg correction. Second, the authors used featureCounts with Rsubread and excluded duplicate, chimeric, multimapping, and low-mapping-quality reads, whereas I used VERSE with default parameters. Additionally, the authors removed genes with fewer than 50 reads across all samples, while I used a more lenient filtering threshold of at least 10 counts in three or more samples. These differences could affect the gene-level read counts and the set of genes included in the differential expression analysis. To evaluate their impact, I would recount the aligned reads using featureCounts with the exclusion criteria described in the paper, apply the same gene-filtering threshold, and rerun DESeq2. Comparing the resulting differentially expressed genes with my original results would help determine whether these methodological differences contributed to the discrepancies.
 
 
 ## Comparing Interpretations
 
-> **Instructions (2-3 paragraphs):** Return to your first interpretations about the major
-> biological pathways implicated in the results:
->
-> - Did the authors emphasize any genes or pathways that were weak or absent in your
->   results? How strongly do you think their data support those claims?
-> - Which of your findings agree with the authors'? Does reaching the same result through
->   a different pipeline make you more or less confident in it, and why?
->
-> *Delete this instruction block once you've completed this section.*
+The authors emphasized several genes and pathways that were weak or absent in my results, particularly those related to pancreatic endocrine development and interferon signaling. Specifically, the paper identified increased KRAS expression and impaired NEUROG3 induction in TYK2 knockout cells, suggesting that TYK2 plays an important role in the development of endocrine precursors. The authors also reported increased receptor tyrosine kinase signaling and demonstrated that TYK2 inhibition reduced interferon-alpha-induced antigen presentation, including MHC class I expression. Although my analysis identified changes in developmental processes, it did not show the same specific emphasis on KRAS, NEUROG3, or interferon related pathways. Therefore, the authors' conclusions are supported by evidence beyond the RNA-seq enrichment results alone. 
 
-
+There was some broader agreement between results, particularly the involvement of developmental processes and changes in cellular function. My analyses identified decreased expression of genes associated with neural, synaptic, and developmental processes, while the authors demonstrated that TYK2 loss affects the progression of pancreatic endocrine development. However, the specific pathways and genes identified were different. My results also highlight extracellular matrix and secretory activit, which were not central findings emphasized by the authors. Reaching some similar results through a different analysis pipeline does provide confidence that these broader patterns are not solely dependent on a particular method. Overall, the comparison provides support for the interpretation of results but teh differences in specific pathway shighlight the importance of experiemental context and methodological choices when interpreting RNA-seq results. 
 
 ## Conclusions
 
-> **Instructions (1-2 paragraphs):**
->
-> - Compare your first conclusions with those made by the paper. Did they propose any
->   follow-up experiments or perform any validation? What was different between what you
->   proposed and what they did or proposed in the text?
->
-> *Delete this instruction block once you've completed this section.*
+My proposeed validation experiments shared some similarities with those performed in the paper. For example, I proposed using qPCR to measure the expression of top differentially expressed genes and Western blotting to determine whether changes in RNA expression were also reflected at the protein level. The authors used similar approaches, including qRT-PCR to validate changes in genes such as KRAS and NEUROG3, along with protein analyses to examin TYK2-related signaling. However, the main difference was the selection of genes and proteins being investigated. My proposed experiments focused on validating the extracellular matrix and synaptic expression patterns identified in my analysis, whereas the authors focused on genes and proteins associated with pancreatic endocrine development and interferon signaling. Thus, as the experimental approaches were similar, they were designed to with different biological context. 
 
-
+The proposed follow-up experiments also differed in their biological focus. I suggested collecting samples at multiple time points to determine when the expression changes occured, as well as performing functional assays to measure extracellular matrix deposition and neuronal function. The authors performed functional experiments, but these were directed toward characterizing TYK2 loss on pancreatic cell development and immune responses. The paper performed further experiments to investigate cell life proliferation and T-cell co-culture experiments that provided functional evidence for the mechanisms suggested by their RNA-seq results. While the paper did not investigate the specific extracellular and neuronal functions I proposed, its use of functional assays supports the importance of following up transcriptomic findings with experiments that measure cellular behavior.
 
 # Session Info
 
