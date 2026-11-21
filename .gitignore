@@ -6,4 +6,4 @@ work/
 *.gz
 *.gtf
 *.bam
-.nextflow*
+.nextflow*report-*.html

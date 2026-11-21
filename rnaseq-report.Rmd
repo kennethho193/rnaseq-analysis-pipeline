@@ -152,13 +152,13 @@ background <- res %>%
   left_join(gene_map, by = join_by(gene == gene_id))
 
 # Write gene names to separate text files, one name per line
-write.table(unique(up_genes$gene_name), "up_genes.txt",
+write.table(unique(up_genes$gene_name), "enrichment/up_genes.txt",
             quote = FALSE, row.names = FALSE, col.names = FALSE)
 
-write.table(unique(down_genes$gene_name), "down_genes.txt",
+write.table(unique(down_genes$gene_name), "enrichment/down_genes.txt",
             quote = FALSE, row.names = FALSE, col.names = FALSE)
 
-write.table(unique(background$gene_name), "background.txt",
+write.table(unique(background$gene_name), "enrichment/background.txt",
             quote = FALSE, row.names = FALSE, col.names = FALSE)
 ```
 
@@ -239,8 +239,8 @@ ggplot(top_pathways, aes(x = NES, y = reorder(pathway, NES), fill = NES > 0)) +
 ## Comparing DAVID/Enrichr and fgsea
 ```{r david_results}
 # DAVID Functional Annotation Chart results 
-david_up <- read_csv("DAVIDChartReport_up_genes_2026-11-02.csv")
-david_down <- read_csv("DAVIDChartReport_down_genes_2026-11-02.csv")
+david_up <- read_csv("enrichment/DAVIDChartReport_up_genes_2026-11-02.csv")
+david_down <- read_csv("enrichment/DAVIDChartReport_down_genes_2026-11-02.csv")
 
 # keep terms with Benjamini-adjusted p < 0.05 (same cutoff as padj for DE genes)
 david_up_sig <- david_up %>% filter(Benjamini < 0.05) %>% arrange(Benjamini)
