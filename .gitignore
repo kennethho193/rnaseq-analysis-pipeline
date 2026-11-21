@@ -7,3 +7,5 @@ work/
 *.gtf
 *.bam
 .nextflow*report-*.html
+.nextflow.log*
+rnaseq-report.html
